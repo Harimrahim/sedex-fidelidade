@@ -64,10 +64,10 @@ input:focus{border-color:var(--amarelo)}
 .item.sel .marca{background:var(--verde);border-color:var(--verde)}
 .item.travado{opacity:.35;cursor:not-allowed}
 .contador{margin:12px 0 4px;font-weight:700;color:var(--amarelo)}
-.cartao{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}
+.cartao{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
 .carimbo{
   aspect-ratio:1;border-radius:50%;border:3px dashed var(--amarelo);
-  display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:800;
 }
 .carimbo.cheio{background:var(--amarelo);color:var(--roxo-escuro);border-style:solid;animation:pop .4s}
 @keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
@@ -77,11 +77,16 @@ input:focus{border-color:var(--amarelo)}
   font-size:2rem;font-weight:800;letter-spacing:3px;margin:12px 0;padding:14px;
   background:var(--branco);color:var(--roxo-escuro);border-radius:14px;animation:pop .5s;
 }
+.resgate{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.25)}
+.erro{color:#ffb3b3;font-weight:600;min-height:1.2em;margin-top:8px}
 .sair{background:none;border:none;color:var(--branco);opacity:.7;margin-top:18px;cursor:pointer;text-decoration:underline}
-#btnTeste{display:none;background:var(--branco)}
+#faixaTeste{display:none;position:fixed;top:0;left:0;right:0;z-index:9;padding:6px;text-align:center;
+  font-weight:700;font-size:.85rem;background:var(--amarelo);color:var(--roxo-escuro)}
 </style>
 </head>
 <body>
+
+<div id="faixaTeste">MODO TESTE: dados só neste aparelho e qualquer código vale</div>
 
 <!-- TELA 1: INÍCIO -->
 <section class="tela ativa" id="telaInicio">
@@ -97,7 +102,7 @@ input:focus{border-color:var(--amarelo)}
     <p class="sub">Digite seus dados para acompanhar seu cartão fidelidade.</p>
     <input id="nome" placeholder="Seu nome">
     <input id="telefone" type="tel" placeholder="Seu telefone com DDD">
-    <button class="botao" onclick="entrar()">Continuar</button>
+    <button class="botao" id="btnEntrar" onclick="entrar()">Continuar</button>
   </div>
 </section>
 
@@ -117,11 +122,16 @@ input:focus{border-color:var(--amarelo)}
   <img class="logo logo-pequena" src="logo.png" alt="Sedex do Açaí">
   <div class="caixa">
     <h2 id="ola"></h2>
-    <p class="sub">Complete 6 compras e ganhe um açaí de 400 ml!</p>
+    <p class="sub">Complete 8 compras e ganhe uma marmita de açaí de 700 g!</p>
     <div class="cartao" id="cartao"></div>
     <div id="faltam" class="contador"></div>
     <div class="resumo" id="resumo"></div>
-    <button class="botao" id="btnTeste" onclick="simularCompra()">Simular compra (modo de teste)</button>
+    <div class="resgate">
+      <p class="sub">Tem um flyer do seu pedido? Digite o código para ganhar 1 carimbo:</p>
+      <input id="codigoFlyer" placeholder="Código do flyer" autocapitalize="characters">
+      <button class="botao" id="btnResgatar" onclick="resgatar()">Resgatar carimbo</button>
+      <div class="erro" id="msgCodigo"></div>
+    </div>
     <button class="sair" onclick="sair()">Sair</button>
   </div>
 </section>
@@ -131,7 +141,7 @@ input:focus{border-color:var(--amarelo)}
   <div class="caixa">
     <div class="premio">🏆</div>
     <h2>Parabéns! Você ganhou!</h2>
-    <p class="sub">Um açaí de 400 ml com os adicionais que você escolheu:</p>
+    <p class="sub">Uma marmita de açaí de 700 g com os adicionais que você escolheu:</p>
     <div class="resumo" id="resumoPremio"></div>
     <button class="botao-gigante" id="btnReivindicar" style="font-size:1.4rem;margin-top:18px" onclick="reivindicar()">Toque aqui para reivindicar</button>
     <div id="areaCodigo" style="display:none">
@@ -144,7 +154,20 @@ input:focus{border-color:var(--amarelo)}
   </div>
 </section>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, writeBatch, increment, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* CONFIGURAÇÃO DO FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyAKWGI3yk5WOU8rQit5TAfxU1jUX1mUTpc",
+  authDomain: "sedex-do-acai-fidelidade.firebaseapp.com",
+  projectId: "sedex-do-acai-fidelidade",
+  messagingSenderId: "1067708455298",
+  appId: "1:1067708455298:web:4d5165eeb7eb2f4c57d79b"
+};
+
 const WHATSAPP='https://wa.me/556699614361';
 const ADICIONAIS=[
   'Leite Condensado','Leite em Pó','Banana','Cobertura de Caramelo','Cobertura de Chocolate',
@@ -152,7 +175,11 @@ const ADICIONAIS=[
   'Ovomaltine','Amendoim Torrado','Paçoca','Sucrilhos','Gotas de Chocolate','Bis Lacta',
   'Leite Condensado Piracanjuba','Granola','Chocoboll','Kiwi','Uva','Confete'
 ];
-const META=6, MAX=4;
+const META=8, MAX=4;
+const params=new URLSearchParams(location.search);
+const TESTE=params.get('teste')==='1';
+let codigoURL=(params.get('c')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
+const db=TESTE?null:getFirestore(initializeApp(firebaseConfig));
 let escolhidos=[];
 let usuario=null;
 
@@ -160,19 +187,69 @@ function ir(id){
   document.querySelectorAll('.tela').forEach(t=>t.classList.remove('ativa'));
   document.getElementById(id).classList.add('ativa');
 }
-function chave(tel){return 'sedex_'+tel.replace(/\D/g,'')}
-function carregar(tel){const d=localStorage.getItem(chave(tel));return d?JSON.parse(d):null}
-function gravar(){localStorage.setItem(chave(usuario.telefone),JSON.stringify(usuario))}
 
-function entrar(){
-  const nome=document.getElementById('nome').value.trim();
-  const tel=document.getElementById('telefone').value.trim();
-  if(nome.length<2||tel.replace(/\D/g,'').length<10){alert('Preencha seu nome e telefone com DDD.');return}
-  usuario=carregar(tel)||{nome:nome,telefone:tel,compras:0,adicionais:null,codigo:null};
-  gravar();
-  if(!usuario.adicionais){montarEnquete();ir('telaEnquete')}else{mostrarCartao()}
+/* DADOS: Firestore (ou localStorage no modo teste) */
+const lsKey=t=>'sedex_teste_'+t;
+function salvarLocal(){localStorage.setItem(lsKey(usuario.telefone),JSON.stringify(usuario))}
+
+async function buscarCliente(tel){
+  if(TESTE){const d=localStorage.getItem(lsKey(tel));return d?JSON.parse(d):null}
+  const s=await getDoc(doc(db,'clientes',tel));
+  return s.exists()?s.data():null;
+}
+async function criarCliente(u){
+  if(TESTE){
+    if(codigoURL){u.compras=1}
+    salvarLocal();return
+  }
+  const dados={
+    nome:u.nome,telefone:u.telefone,adicionais:u.adicionais,
+    compras:0,premioCodigo:null,criadoEm:serverTimestamp()
+  };
+  if(codigoURL){
+    /* o primeiro carimbo vem do código do QR: cria o cliente e gasta o código juntos */
+    dados.compras=1;
+    dados.ultimoCodigo=codigoURL;
+    const b=writeBatch(db);
+    b.set(doc(db,'clientes',u.telefone),dados);
+    b.update(doc(db,'codigos',codigoURL),{usado:true,usadoPor:u.telefone,usadoEm:serverTimestamp()});
+    await b.commit();
+    u.compras=1;
+    codigoURL='';
+  }else{
+    await setDoc(doc(db,'clientes',u.telefone),dados);
+  }
+}
+async function registrarPonto(codigo){
+  if(TESTE){usuario.compras++;salvarLocal();return}
+  const b=writeBatch(db);
+  b.update(doc(db,'codigos',codigo),{usado:true,usadoPor:usuario.telefone,usadoEm:serverTimestamp()});
+  b.update(doc(db,'clientes',usuario.telefone),{compras:increment(1),ultimoCodigo:codigo});
+  await b.commit();
+  usuario.compras++;
+}
+async function gravarPremio(c){
+  if(TESTE){usuario.premioCodigo=c;salvarLocal();return}
+  await updateDoc(doc(db,'clientes',usuario.telefone),{premioCodigo:c});
+  usuario.premioCodigo=c;
 }
 
+/* LOGIN */
+async function entrar(){
+  const nome=document.getElementById('nome').value.trim();
+  let tel=document.getElementById('telefone').value.replace(/\D/g,'');
+  if(tel.length>11&&tel.startsWith('55'))tel=tel.slice(2);
+  if(nome.length<2||tel.length<10||tel.length>11){alert('Preencha seu nome e telefone com DDD.');return}
+  const btn=document.getElementById('btnEntrar');btn.disabled=true;
+  try{
+    const c=await buscarCliente(tel);
+    if(c){usuario=c;mostrarCartao()}
+    else{usuario={nome:nome,telefone:tel,compras:0,adicionais:null,premioCodigo:null};montarEnquete();ir('telaEnquete')}
+  }catch(e){console.error(e);alert('Não foi possível conectar. Tente novamente.')}
+  btn.disabled=false;
+}
+
+/* ENQUETE (aparece uma única vez) */
 function montarEnquete(){
   escolhidos=[];
   const g=document.getElementById('grade');g.innerHTML='';
@@ -201,11 +278,14 @@ function atualizarEnquete(){
   document.getElementById('contador').textContent=escolhidos.length+' de '+MAX+' escolhidos';
   document.getElementById('btnSalvar').disabled=escolhidos.length===0;
 }
-function salvarEnquete(){
+async function salvarEnquete(){
+  const btn=document.getElementById('btnSalvar');btn.disabled=true;
   usuario.adicionais=escolhidos.slice();
-  gravar();mostrarCartao();
+  try{await criarCliente(usuario);mostrarCartao()}
+  catch(e){console.error(e);alert('Não foi possível salvar. Tente novamente.');btn.disabled=false}
 }
 
+/* CARTÃO */
 function mostrarCartao(){
   if(usuario.compras>=META){mostrarPremio();return}
   document.getElementById('ola').textContent='Olá, '+usuario.nome.split(' ')[0]+'!';
@@ -219,7 +299,18 @@ function mostrarCartao(){
   const faltam=META-usuario.compras;
   document.getElementById('faltam').textContent=faltam===1?'Falta só 1 compra!':'Faltam '+faltam+' compras';
   document.getElementById('resumo').textContent='Seus adicionais: '+usuario.adicionais.join(', ');
+  document.getElementById('codigoFlyer').value=codigoURL;
+  document.getElementById('msgCodigo').textContent='';
   ir('telaCartao');
+}
+async function resgatar(){
+  const cod=document.getElementById('codigoFlyer').value.toUpperCase().replace(/\s/g,'');
+  const msg=document.getElementById('msgCodigo');
+  if(!/^[A-Z0-9-]{4,20}$/.test(cod)){msg.textContent='Digite o código que está no seu flyer.';return}
+  const btn=document.getElementById('btnResgatar');btn.disabled=true;
+  try{await registrarPonto(cod);codigoURL='';mostrarCartao()}
+  catch(e){console.error(e);msg.textContent='Código inválido ou já usado.'}
+  btn.disabled=false;
 }
 
 /* PRÊMIO E CÓDIGO DE RESGATE */
@@ -231,32 +322,37 @@ function gerarCodigo(){
 }
 function mostrarPremio(){
   document.getElementById('resumoPremio').textContent=usuario.adicionais.join(', ');
-  if(usuario.codigo){exibirCodigo()}else{
+  if(usuario.premioCodigo){exibirCodigo()}else{
     document.getElementById('btnReivindicar').style.display='block';
     document.getElementById('areaCodigo').style.display='none';
   }
   ir('telaPremio');
 }
-function reivindicar(){
-  if(!usuario.codigo){usuario.codigo=gerarCodigo();gravar()}
-  exibirCodigo();
+async function reivindicar(){
+  try{
+    if(!usuario.premioCodigo){await gravarPremio(gerarCodigo())}
+    exibirCodigo();
+  }catch(e){console.error(e);alert('Não foi possível gerar o código. Tente novamente.')}
 }
 function exibirCodigo(){
-  document.getElementById('codigo').textContent=usuario.codigo;
+  document.getElementById('codigo').textContent=usuario.premioCodigo;
   document.getElementById('btnReivindicar').style.display='none';
   document.getElementById('areaCodigo').style.display='block';
-  const msg='Olá! Sou '+usuario.nome+' ('+usuario.telefone+'). Completei as 6 compras do cartão fidelidade e quero resgatar meu açaí de 400 ml. Código: '+usuario.codigo+'. Adicionais: '+usuario.adicionais.join(', ')+'.';
+  const msg='Olá! Sou '+usuario.nome+' ('+usuario.telefone+'). Completei as 8 compras do cartão fidelidade e quero resgatar minha marmita de açaí de 700 g. Código: '+usuario.premioCodigo+'. Adicionais: '+usuario.adicionais.join(', ')+'.';
   document.getElementById('linkZap').href=WHATSAPP+'?text='+encodeURIComponent(msg);
 }
 
-function simularCompra(){
-  if(usuario.compras<META){usuario.compras++;gravar();mostrarCartao()}
+function sair(){
+  usuario=null;
+  document.getElementById('nome').value='';
+  document.getElementById('telefone').value='';
+  ir('telaInicio');
 }
-function sair(){usuario=null;document.getElementById('nome').value='';document.getElementById('telefone').value='';ir('telaInicio')}
 
-if(new URLSearchParams(location.search).get('teste')==='1'){
-  document.getElementById('btnTeste').style.display='block';
-}
+if(TESTE){document.getElementById('faixaTeste').style.display='block'}
+
+/* o HTML chama estas funções pelos botões */
+Object.assign(window,{ir,entrar,salvarEnquete,resgatar,reivindicar,sair});
 </script>
 </body>
 </html>
