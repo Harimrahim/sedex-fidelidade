@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importar códigos - Sedex do Açaí</title>
+<style>
+body{font-family:Arial,sans-serif;background:#4b1a8f;color:#fff;margin:0;padding:24px;text-align:center}
+.card{background:#fff;color:#2b0f57;border-radius:16px;padding:20px;max-width:420px;margin:20px auto}
+button{background:#ffd400;color:#2b0f57;border:0;border-radius:12px;padding:16px 20px;font-size:18px;font-weight:bold;width:100%;margin-top:12px}
+input{width:100%;box-sizing:border-box;padding:14px;font-size:16px;border-radius:10px;border:2px solid #4b1a8f;margin-top:8px}
+#log{margin-top:16px;font-size:15px;white-space:pre-wrap;text-align:left}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Importar códigos dos flyers</h2>
+<p>Esta página grava os 500 códigos no banco. Use uma vez só.</p>
+<input id="chave" type="password" inputmode="numeric" placeholder="Chave de importação (4 dígitos)">
+<button id="btn">Importar 500 códigos</button>
+<div id="log"></div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAKWGI3yk5WOU8rQit5TAfxU1jUX1mUTpc",
+  authDomain: "sedex-do-acai-fidelidade.firebaseapp.com",
+  projectId: "sedex-do-acai-fidelidade",
+  messagingSenderId: "1067708455298",
+  appId: "1:1067708455298:web:4d5165eeb7eb2f4c57d79b"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const CODIGOS = ["SDX-28KMGG", "SDX-2HPWBB", "SDX-2J3392", "SDX-2KSYEM", "SDX-33T84X", "SDX-35JXYJ", "SDX-3NKQXT", "SDX-3QLPF9", "SDX-3WLG58", "SDX-3ZNJFS", "SDX-457XW5", "SDX-45M634", "SDX-4AFZ6S", "SDX-4DD829", "SDX-4DTJZB", "SDX-4F9AE8", "SDX-4R3RG6", "SDX-4S2ZNU", "SDX-4VM2NG", "SDX-563UWK", "SDX-5B2US4", "SDX-5DVNEH", "SDX-5DZCLP", "SDX-5G9RY6", "SDX-5HM293", "SDX-5KQLTV", "SDX-5MMVCJ", "SDX-5P9738", "SDX-5PNMWZ", "SDX-5QE6X2", "SDX-5XYWDU", "SDX-5ZE52F", "SDX-64B667", "SDX-64D5FU", "SDX-67NP8A", "SDX-6HLR7B", "SDX-6JXX2A", "SDX-6MDNNL", "SDX-6NV3N6", "SDX-6NZQEZ", "SDX-6TTEER", "SDX-6VAJSC", "SDX-6Y2YMM", "SDX-6Z3WQE", "SDX-6Z5Z7Y", "SDX-7273MB", "SDX-736N75", "SDX-75NTJM", "SDX-76L29F", "SDX-7AKZCD", "SDX-7CYVYU", "SDX-7GTBHX", "SDX-7GXHQB", "SDX-7HQP7Y", "SDX-7KBXRT", "SDX-7RCVYK", "SDX-7S8BMG", "SDX-7VFWQ2", "SDX-7WE7C2", "SDX-7XA7DN", "SDX-7Y7HUG", "SDX-8C895V", "SDX-8G49FY", "SDX-8MUJ9L", "SDX-8QP3CY", "SDX-8RJLYD", "SDX-8S862X", "SDX-8S9AVU", "SDX-8SHWL9", "SDX-923MRH", "SDX-92L2AH", "SDX-99L6AZ", "SDX-9AF3GQ", "SDX-9B8MAG", "SDX-9F8RNJ", "SDX-9HWMX6", "SDX-9JJHU8", "SDX-9M6RCG", "SDX-9TT2ZY", "SDX-9VRJ2V", "SDX-9XPK8E", "SDX-9YJGYS", "SDX-9YQCDD", "SDX-A2VUDW", "SDX-A9GMHR", "SDX-AEEJPB", "SDX-AEL8PB", "SDX-AEUTQY", "SDX-AL2QHN", "SDX-ALFPCE", "SDX-ASA9BC", "SDX-ATB5Y2", "SDX-AXZT9T", "SDX-B4LQ3V", "SDX-B6Y4L2", "SDX-BDCQRJ", "SDX-BGT7XS", "SDX-BGUXPZ", "SDX-BHPQCB", "SDX-BN87CW", "SDX-BNC4TS", "SDX-BSAFK3", "SDX-C35FK4", "SDX-C4R5LZ", "SDX-C5DCQW", "SDX-C5VFLX", "SDX-CCZYXV", "SDX-CLVC85", "SDX-CMK9RM", "SDX-CUBB4F", "SDX-CWGZH8", "SDX-D6WQ4X", "SDX-DCXP2Z", "SDX-DEZ2QU", "SDX-DFATM3", "SDX-DGSAPP", "SDX-DLRBG5", "SDX-DLS8ZP", "SDX-DMFVBW", "SDX-DMNVUQ", "SDX-DQHLLF", "SDX-DR3A72", "SDX-DRP4UE", "SDX-DVF7RW", "SDX-E8J3LH", "SDX-ECBFYC", "SDX-ELHEGU", "SDX-EQHDHN", "SDX-FBS3K2", "SDX-FJDLUX", "SDX-FJGSNG", "SDX-FK9VMB", "SDX-FMNTF3", "SDX-FWPNNJ", "SDX-FYRRTT", "SDX-G2A33Y", "SDX-G3MQXX", "SDX-GBPUHB", "SDX-GMTAZN", "SDX-GQ6TXV", "SDX-GX7SNP", "SDX-GY4LRR", "SDX-HEDC5C", "SDX-HGZC9Q", "SDX-HHGC5Q", "SDX-HKSU5S", "SDX-HMXJLV", "SDX-HW29RD", "SDX-HXCJ28", "SDX-HYE44P", "SDX-JRWSHL", "SDX-JVCR94", "SDX-JW3BUK", "SDX-JZ94QL", "SDX-K3TJFZ", "SDX-K9NKXS", "SDX-KAD28K", "SDX-KC3ELG", "SDX-KEBWVC", "SDX-KLHT9W", "SDX-KYRMAC", "SDX-L6PH3J", "SDX-L6RR5F", "SDX-LFLJW2", "SDX-LFY9PZ", "SDX-LJJ6QC", "SDX-LMFDZA", "SDX-LQZC3C", "SDX-LVCTP4", "SDX-LYHS6E", "SDX-M7JLH9", "SDX-M7S9XR", "SDX-M9Q7MX", "SDX-MA6PXB", "SDX-MG7J4M", "SDX-MGUS5J", "SDX-MJD664", "SDX-MV6NJN", "SDX-N3MNSK", "SDX-N6S82N", "SDX-NA52GV", "SDX-NCXFDL", "SDX-NDRB3R", "SDX-NFP9UL", "SDX-NG7V4X", "SDX-NGFJHL", "SDX-NGVY95", "SDX-NR9S6E", "SDX-NRAF9Q", "SDX-NRYVEV", "SDX-NSSCVW", "SDX-NT43AJ", "SDX-NWY35F", "SDX-PBLYY2", "SDX-PDQK3Q", "SDX-PJPTLN", "SDX-PJX5NE", "SDX-PKD4PK", "SDX-PMEBT2", "SDX-PMKP8D", "SDX-PMY27U", "SDX-PQNFQF", "SDX-PR52V8", "SDX-PU5JA8", "SDX-PWBVR9", "SDX-PXJ6QN", "SDX-Q6URTA", "SDX-Q8KNXK", "SDX-QDB6ET", "SDX-QEAFZK", "SDX-QFZC9D", "SDX-QKZAYZ", "SDX-QLV7AZ", "SDX-QMEWP6", "SDX-QPWX75", "SDX-QWFJWF", "SDX-QYRGNT", "SDX-RB6VJP", "SDX-REVNVM", "SDX-RH95TT", "SDX-RHYNV4", "SDX-RLM3QV", "SDX-RUBEXN", "SDX-S3X8JQ", "SDX-S8Z7RC", "SDX-SBGL92", "SDX-SFTNAR", "SDX-SGQM8E", "SDX-SU6BRN", "SDX-SY569X", "SDX-T6VTQC", "SDX-T74U48", "SDX-T82QMX", "SDX-TFBJLB", "SDX-TGUTDF", "SDX-THYMR5", "SDX-TJNMVD", "SDX-TL4E4F", "SDX-TLNP3E", "SDX-TNQARW", "SDX-TT342Q", "SDX-TT95XD", "SDX-TTU2K6", "SDX-U6REJE", "SDX-U7DXMJ", "SDX-U9ZZJH", "SDX-UAFXU7", "SDX-UC3PPE", "SDX-UDQVNS", "SDX-UL7S72", "SDX-UR6VZF", "SDX-UV3GH5", "SDX-UX5CLT", "SDX-V2WF7T", "SDX-V4E3L7", "SDX-VBL5GK", "SDX-VE2J4R", "SDX-VEBG39", "SDX-VJP8DU", "SDX-VMNJQY", "SDX-VPGDBZ", "SDX-VPRVYT", "SDX-VRKQFZ", "SDX-VRS3NY", "SDX-VUUBHV", "SDX-VXDQSA", "SDX-VYMW2C", "SDX-W3VWHG", "SDX-W43KFP", "SDX-W548H3", "SDX-W6VR5Q", "SDX-W884EG", "SDX-WB2RU8", "SDX-WBE23C", "SDX-WCYZ9T", "SDX-WQPTXF", "SDX-X4MXL5", "SDX-X6KQPP", "SDX-X7JJ3K", "SDX-X9M7WX", "SDX-XAZU8H", "SDX-XKJGXQ", "SDX-XPB2TQ", "SDX-XR59N3", "SDX-XUP8DZ", "SDX-XWBSAK", "SDX-XWCZ2M", "SDX-XXY48K", "SDX-Y5DYDD", "SDX-YMAVMJ", "SDX-YPKRQ3", "SDX-YR8QG9", "SDX-Z4Z7DG", "SDX-Z6W5GM", "SDX-Z6ZXJG", "SDX-ZFDDZC", "SDX-ZFZQBD", "SDX-ZKAJB4", "SDX-ZWKWJG", "SDX-ZZGRSC", "SDX-A9CYUY", "SDX-88DP2U", "SDX-V8CGRF", "SDX-JY4MJQ", "SDX-MLMJND", "SDX-KDCQGD", "SDX-SL3N4T", "SDX-GJJC55", "SDX-GZ9FYP", "SDX-X9UVLB", "SDX-GAXGQG", "SDX-5GZLVG", "SDX-XLBXYE", "SDX-MLK5CQ", "SDX-88ZB9G", "SDX-U8UHM5", "SDX-JCKWE2", "SDX-M9XPUT", "SDX-ZZSGTN", "SDX-Q32LQJ", "SDX-U48JME", "SDX-XPRQPP", "SDX-F5VWWJ", "SDX-HAGSK8", "SDX-WSYYML", "SDX-QHSGVL", "SDX-XM57HQ", "SDX-5BP698", "SDX-GMCZ25", "SDX-UA7ZRF", "SDX-YPVVHU", "SDX-47HRFR", "SDX-S8CDQU", "SDX-QNJAAY", "SDX-27SZ5J", "SDX-QFQ2XS", "SDX-JPLUQN", "SDX-XG584A", "SDX-HBEE39", "SDX-4LFDC7", "SDX-K7R6ZN", "SDX-HBZT8X", "SDX-F7MR6Y", "SDX-Y4KX9U", "SDX-3CEJLF", "SDX-3FFKQA", "SDX-PBW7LW", "SDX-NERFX9", "SDX-SU3YYV", "SDX-7BSXEX", "SDX-CN2QZK", "SDX-DYRL8P", "SDX-YNQFAT", "SDX-ZZ9YXC", "SDX-4HS5LB", "SDX-RWMPY6", "SDX-WX8Y9T", "SDX-ZJFFXT", "SDX-VLGJD6", "SDX-7TNXMX", "SDX-SEDMGK", "SDX-T5CTLE", "SDX-6RT875", "SDX-KCPU7R", "SDX-EBGZFY", "SDX-TA6QCX", "SDX-3HZRLB", "SDX-NAQKYH", "SDX-TLKQDM", "SDX-74Z6J9", "SDX-63RZ9C", "SDX-LAT35Y", "SDX-4NNQRA", "SDX-4PSYEH", "SDX-3EBHHQ", "SDX-2YA8CS", "SDX-M5FTXH", "SDX-RQNUBZ", "SDX-XS3Z4U", "SDX-TC8KP6", "SDX-6MVBFL", "SDX-WWGBAF", "SDX-C7XCKD", "SDX-UW8YPH", "SDX-QCGMTD", "SDX-ZH6Y4D", "SDX-8245UK", "SDX-4JHHHT", "SDX-KPLRYC", "SDX-482KK2", "SDX-6R3AL6", "SDX-Z7U9RN", "SDX-YH9QL6", "SDX-XTHD2D", "SDX-ZZGKM5", "SDX-K5J272", "SDX-9PTMLY", "SDX-3QKC9P", "SDX-37B2S5", "SDX-U5YDWY", "SDX-LPYJEN", "SDX-FKNNNW", "SDX-KAKAVS", "SDX-QTZ8TR", "SDX-5WLQRV", "SDX-FUZL2Q", "SDX-FNVEAZ", "SDX-CA7QWV", "SDX-HRCS4U", "SDX-U72YMY", "SDX-A82GN9", "SDX-8Z5HHX", "SDX-PF8GMV", "SDX-JM7KKW", "SDX-7SHAHW", "SDX-G7UVSA", "SDX-L5B87B", "SDX-BJT8PM", "SDX-LQ5VAH", "SDX-KFCT2T", "SDX-RW9EYC", "SDX-K8DXEC", "SDX-RKE8B7", "SDX-TYA4LX", "SDX-LNUXDA", "SDX-QHQPQZ", "SDX-KRH55P", "SDX-VDRAJE", "SDX-XS3PTF", "SDX-BMZVQR", "SDX-4LC4FN", "SDX-VQM5DQ", "SDX-GLKWED", "SDX-Z3JA3L", "SDX-LJB79L", "SDX-FK5Y6R", "SDX-H2G5G2", "SDX-6FVQ5S", "SDX-CLZ9UN", "SDX-FQVPAT", "SDX-ZV5Q6R", "SDX-KPK43S", "SDX-XD93N8", "SDX-MVLWND", "SDX-7ZFDBK", "SDX-7V65JL", "SDX-AQH99E", "SDX-659EDV", "SDX-EMVC9K", "SDX-3MDK5Q", "SDX-MGYDP6", "SDX-3JNE2F", "SDX-PAK2N6", "SDX-PRBF9Y", "SDX-4CL4V2", "SDX-G9AJ3E", "SDX-5R6GNF", "SDX-QQEQ2Y", "SDX-GLY89R", "SDX-QS952C", "SDX-MMJY4A", "SDX-4CPFS9", "SDX-PT8MED", "SDX-KXTS9D", "SDX-QN7CD4", "SDX-NNE5UL", "SDX-7NFPLV", "SDX-4QXGXH", "SDX-2LJUMB", "SDX-72WYSQ", "SDX-JFQ2X6", "SDX-Y7RXH7", "SDX-K6HTCB", "SDX-L5HPH5", "SDX-MK9Z3Z", "SDX-5RRFRX", "SDX-EGXHJN", "SDX-K4C3PH", "SDX-Y4QEQX", "SDX-QL7K9V", "SDX-R8ZB57", "SDX-RN6G5P", "SDX-G8CLNM", "SDX-HURYSQ", "SDX-RPWZZK", "SDX-M5QDXX", "SDX-EZTN28", "SDX-6GLTK7", "SDX-GTPWUW", "SDX-6W5D5G", "SDX-2Z7MV5", "SDX-XRKFAQ", "SDX-ZKZEG7", "SDX-W7822A", "SDX-A2JCBF", "SDX-R2ALHE", "SDX-A2XBAH", "SDX-BSL83A", "SDX-7MGFH6", "SDX-KLYZ5V"];
+const log = t => { document.getElementById('log').textContent += t + "\n"; };
+
+document.getElementById('btn').onclick = async () => {
+  const chave = document.getElementById('chave').value.trim();
+  if(!chave){ log("Digite a chave primeiro."); return; }
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  try{
+    for(let i=0;i<CODIGOS.length;i+=100){
+      const b = writeBatch(db);
+      CODIGOS.slice(i,i+100).forEach(c=>{
+        b.set(doc(db,'codigos',c),{usado:false,chave:chave});
+      });
+      await b.commit();
+      log("Gravados " + Math.min(i+100,CODIGOS.length) + " de " + CODIGOS.length);
+    }
+    log("Pronto! Todos os códigos foram importados.");
+  }catch(e){
+    log("Erro: " + e.message);
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
